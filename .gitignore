@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.log
+data/*.csv  # Optional: Exclude CSV files if they are only for local testing
