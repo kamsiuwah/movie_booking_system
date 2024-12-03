@@ -74,7 +74,7 @@ def login():
             for row in reader:
                 if row['email'] == email and bcrypt.checkpw(password.encode('utf-8'), row['password'].encode('utf-8')):
                     # Store user in session
-                    session['user'] = email
+                    session['user_email'] = email
                     session['user_name'] = row['name']
                     # Set admin flag if email is admin@admin.com
                     session['is_admin'] = (email == 'admin@admin.com')
@@ -83,7 +83,6 @@ def login():
         return "Invalid credentials!"
 
     return render_template('login.html')
-
 
 # Logout
 @app.route('/logout')
@@ -463,6 +462,71 @@ def edit_review(movie_id, review_id):
 
     return "Review not found or unauthorized", 404
 
+@app.route('/admin/movies', methods=['GET', 'POST'])
+def manage_movies():
+    if 'user_email' not in session or session.get('user_email') != 'admin@admin.com':
+        return redirect('/login')
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'add':
+            # Add new movie
+            id = request.form.get('id')
+            title = request.form.get('title')
+            genre = request.form.get('genre')
+            description = request.form.get('description')
+            
+            with open('data/movies.csv', 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([id, title, genre, description])
+            
+        elif action == 'edit':
+            # Edit existing movie
+            id = request.form.get('id')
+            title = request.form.get('title')
+            genre = request.form.get('genre')
+            description = request.form.get('description')
+            
+            movies = []
+            with open('data/movies.csv', 'r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    if row['id'] == id:
+                        row['title'] = title
+                        row['genre'] = genre
+                        row['description'] = description
+                    movies.append(row)
+            
+            with open('data/movies.csv', 'w', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=['id', 'title', 'genre', 'description'])
+                writer.writeheader()
+                writer.writerows(movies)
+                
+        elif action == 'delete':
+            # Delete movie
+            id = request.form.get('id')
+            movies = []
+            with open('data/movies.csv', 'r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    if row['id'] != id:
+                        movies.append(row)
+            
+            with open('data/movies.csv', 'w', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=['id', 'title', 'genre', 'description'])
+                writer.writeheader()
+                writer.writerows(movies)
+
+        return redirect('/admin/movies')
+
+    # GET request - show movie list
+    movies = []
+    with open('data/movies.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        movies = list(reader)
+
+    return render_template('admin/manage_movies.html', movies=movies)
 # -------------------- Helper Functions --------------------
 # Ensure data directory exists
 def ensure_data_files():

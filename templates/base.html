@@ -13,9 +13,12 @@
             <a class="navbar-brand" href="/">Movie Booking</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav ms-auto">
-                    {% if session.get('user') %}
+                    {% if session.get('user_email') %}
                         <li class="nav-item"><a class="nav-link" href="/history">My Tickets</a></li>
                         <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+                        {% if session.get('user_email') == 'admin@admin.com' %}
+                        <li class="nav-item"><a class="nav-link" href="/admin/movies">Manage Movies</a></li>
+                        {% endif %}
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
                         <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>

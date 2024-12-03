@@ -1,53 +1,56 @@
-{# movies.html #}
 {% extends "base.html" %}
-{% block title %}Movies{% endblock %}
 {% block content %}
-<div class="container">
-    <!-- Search Form -->
+<div class="container mt-4">
+    <!-- Search Bar -->
     <div class="row mb-4">
-        <div class="col">
-            <form method="GET" action="{{ url_for('movies') }}">
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Search movies...">
-                    <button type="submit" class="btn btn-primary">Search</button>
-                </div>
+        <div class="col-md-6 mx-auto">
+            <form method="GET" action="{{ url_for('movies') }}" class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Search movies..." value="{{ request.args.get('search', '') }}">
+                <button type="submit" class="btn btn-primary">Search</button>
             </form>
         </div>
     </div>
 
-    <!-- Movies List -->
-    <div class="row">
+    <!-- Movies Grid -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for movie in movies %}
-        <div class="col-md-4">
-            <div class="card mb-4">
+        <div class="col">
+            <div class="card h-100 shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title">{{ movie['title'] }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{{ movie['genre'] }}</h6>
-                    <p class="card-text">{{ movie['description'] }}</p>
+                    <h5 class="card-title">{{ movie.title }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ movie.genre }}</h6>
+                    <p class="card-text text-truncate">{{ movie.description }}</p>
                     
-                    <!-- View Details & Reviews Link -->
-                    <a href="{{ url_for('movie_details', movie_id=movie['id']) }}" 
-                       class="btn btn-primary mb-2 w-100">View Details & Reviews</a>
-                    
-                    {% if session.get('user') %}
-                    <form method="POST" action="/book/{{ movie['id'] }}">
-                        <div class="mb-3">
-                            <label for="theater-{{ movie['id'] }}" class="form-label">Select Theater:</label>
-                            <select name="theater" id="theater-{{ movie['id'] }}" class="form-select">
+                    {% if session.get('user_email') %}
+                    <form method="POST" action="{{ url_for('book_ticket', movie_id=movie.id) }}" class="mb-2">
+                        <div class="mb-2">
+                            <label class="form-label">Select Theater:</label>
+                            <select name="theater" class="form-select form-select-sm">
                                 <option value="Theater 1">Theater 1</option>
                                 <option value="Theater 2">Theater 2</option>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="showtime-{{ movie['id'] }}" class="form-label">Select Showtime:</label>
-                            <select name="showtime" id="showtime-{{ movie['id'] }}" class="form-select">
+                        <div class="mb-2">
+                            <label class="form-label">Select Showtime:</label>
+                            <select name="showtime" class="form-select form-select-sm">
                                 <option value="1:00 PM">1:00 PM</option>
                                 <option value="4:00 PM">4:00 PM</option>
                                 <option value="7:00 PM">7:00 PM</option>
                             </select>
                         </div>
-                        <button class="btn btn-success w-100" type="submit">Book Ticket</button>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('movie_details', movie_id=movie.id) }}" class="btn btn-primary">
+                                View Details & Reviews
+                            </a>
+                            <button type="submit" class="btn btn-success">Book Tickets</button>
+                        </div>
                     </form>
+                    {% else %}
+                    <div class="d-grid">
+                        <a href="{{ url_for('movie_details', movie_id=movie.id) }}" class="btn btn-primary">
+                            View Details & Reviews
+                        </a>
+                    </div>
                     {% endif %}
                 </div>
             </div>
