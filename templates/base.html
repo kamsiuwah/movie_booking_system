@@ -5,37 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Movie Booking System{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- High Contrast Mode Styles -->
+    <style>
+        @media (prefers-contrast: high) {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .btn {
+                border: 2px solid currentColor;
+            }
+            .card {
+                border: 2px solid currentColor;
+            }
+        }
+        /* Visibility for focus states */
+        *:focus {
+            outline: 3px solid #007bff !important;
+            outline-offset: 2px !important;
+        }
+        /* Increased text spacing for readability */
+        p, h1, h2, h3, h4, h5, h6 {
+            line-height: 1.5;
+        }
+        /* Minimum touch target size */
+        .btn, .nav-link {
+            min-height: 44px;
+            min-width: 44px;
+            padding: 8px 16px;
+        }
+    </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <!-- Skip to main content link -->
+    <a href="#main-content" class="visually-hidden-focusable bg-primary text-white p-2 position-absolute">
+        Skip to main content
+    </a>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark" aria-label="Main navigation">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">Movie Booking</a>
-            <div class="collapse navbar-collapse">
+            <a class="navbar-brand" href="/" aria-label="Movie Booking Home">Movie Booking</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if session.get('user_email') %}
-                        <li class="nav-item"><a class="nav-link" href="/history">My Tickets</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/history" aria-label="View My Tickets">My Tickets</a>
+                        </li>
                         {% if session.get('user_email') == 'admin@admin.com' %}
-                        <li class="nav-item"><a class="nav-link" href="/admin/movies">Manage Movies</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/admin/reports">View Reports</a></li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/admin/movies" aria-label="Manage Movies">Manage Movies</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/admin/reports" aria-label="View Reports">Reports</a>
+                            </li>
                         {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logout" aria-label="Log Out">Logout</a>
+                        </li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/login" aria-label="Log In">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/register" aria-label="Register New Account">Register</a>
+                        </li>
                     {% endif %}
-                    <li class="nav-item"><a class="nav-link" href="/movies">Browse Movies</a></li>
-                    {% if session.get('is_admin') %}
-                        <li class="nav-item"><a class="nav-link" href="/admin">Admin Dashboard</a></li>
-                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/movies" aria-label="Browse Movies">Browse Movies</a>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="container mt-4">
+    <main id="main-content" class="container mt-4" role="main">
         {% block content %}{% endblock %}
-    </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Keyboard Navigation Helper -->
+    <script>
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '/' && e.ctrlKey) {
+                document.querySelector('input[type="search"]')?.focus();
+                e.preventDefault();
+            }
+        });
+    </script>
 </body>
 </html>

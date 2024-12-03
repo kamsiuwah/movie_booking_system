@@ -1,19 +1,25 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify, make_response
 import csv
 import os
 import bcrypt
 import stripe
 import json
+import jwt
+import datetime
+from functools import wraps
 from datetime import timedelta
 import barcode
 from barcode.writer import ImageWriter
 from flask_mail import Mail, Message
-from datetime import datetime
+
 
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Required for session management
 stripe.api_key = 'sk_test_51QRlQkCV3XkBzb7OlrDP3tHy8TrtvEwvjcbT3rMsxApUuLceTPNs5dRAHkJpg0J6zWDVtDOHCsWvPKLmu0o3dRn600OmSzOZTA'
+# Add these constants at the top of your file
+JWT_SECRET_KEY = 'your-secret-key-here'  # In production, use a secure secret key
+JWT_ALGORITHM = 'HS256'
 app.permanent_session_lifetime = timedelta(days=7)
 app.config['SESSION_COOKIE_SECURE'] = False  # Set to True if using HTTPS
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -58,6 +64,25 @@ def register():
         return redirect('/login')
 
     return render_template('register.html')
+# Create a decorator to check for valid JWT token
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.cookies.get('token')
+
+        if not token:
+            return redirect('/login')
+
+        try:
+            data = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+            session['user_email'] = data['user_email']
+            session['user_name'] = data['user_name']
+            session['is_admin'] = data['is_admin']
+        except:
+            return redirect('/login')
+
+        return f(*args, **kwargs)
+    return decorated
 
 # User Login
 @app.route('/login', methods=['GET', 'POST'])
@@ -66,19 +91,32 @@ def login():
         email = request.form['email']
         password = request.form['password']
 
-        # Make session permanent
-        session.permanent = True
-
         with open('data/users.csv', 'r') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 if row['email'] == email and bcrypt.checkpw(password.encode('utf-8'), row['password'].encode('utf-8')):
-                    # Store user in session
-                    session['user_email'] = email
-                    session['user_name'] = row['name']
-                    # Set admin flag if email is admin@admin.com
-                    session['is_admin'] = (email == 'admin@admin.com')
-                    return redirect('/movies')
+                    # Generate JWT token
+                    token = jwt.encode({
+                        'user_email': email,
+                        'user_name': row['name'],
+                        'is_admin': (email == 'admin@admin.com'),
+                        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+                    }, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+                    # Create response with redirect
+                    response = make_response(redirect('/movies'))
+                    
+                    # Set secure cookie with token
+                    response.set_cookie(
+                        'token',
+                        token,
+                        httponly=True,
+                        secure=False,  # Set to True in production with HTTPS
+                        samesite='Lax',
+                        max_age=60*60*24*7  # 7 days
+                    )
+                    
+                    return response
 
         return "Invalid credentials!"
 
@@ -87,8 +125,10 @@ def login():
 # Logout
 @app.route('/logout')
 def logout():
+    response = make_response(redirect('/'))
+    response.delete_cookie('token')
     session.clear()
-    return redirect('/')
+    return response
 
 # Browse Movies
 @app.route('/movies', methods=['GET'])
@@ -111,6 +151,7 @@ def movies():
 
 # Purchase Tickets
 @app.route('/book/<movie_id>', methods=['POST'])
+@token_required
 def book_ticket(movie_id):
     if 'user' not in session:
         return redirect('/login')
@@ -252,13 +293,9 @@ def payment_cancel():
     return "Payment canceled. No ticket was booked."
 
 @app.route('/dashboard')
+@token_required
 def dashboard():
-    print(f"Current session: {session}")  # Debug print
-    
-    if 'user' not in session:
-        return redirect('/login')
-
-    user_email = session.get('user')
+    user_email = session.get('user_email')
     user_tickets = []
 
     try:
@@ -267,26 +304,23 @@ def dashboard():
             for row in reader:
                 if row['user_email'].strip() == user_email.strip() and row['status'] == 'confirmed':
                     user_tickets.append(row)
-                    print(f"Found ticket: {row}")  # Debug print
 
         return render_template('dashboard.html', tickets=user_tickets)
     except Exception as e:
-        print(f"Error in dashboard: {e}")  # Debug print
+        print(f"Error in dashboard: {e}")
         return "An error occurred while loading tickets."
 
 # View Purchase History
 @app.route('/history')
-def history():  # Changed from view_history to history
-    if 'user' not in session:
-        return redirect('/login')
-
-    user_email = session.get('user')
+@token_required
+def history():
+    user_email = session.get('user_email')
     tickets = []
     
     try:
         with open('data/tickets.csv', 'r') as file:
             reader = csv.DictReader(file, fieldnames=['ticket_id', 'movie_id', 'theater', 'showtime', 'user_email', 'status'])
-            next(reader)  # Skip header row
+            next(reader)
             for row in reader:
                 if row['user_email'].strip() == user_email.strip():
                     tickets.append(row)
@@ -368,6 +402,7 @@ def movie_details(movie_id):
 
 
 @app.route('/movie/<movie_id>/review', methods=['POST'])
+@token_required
 def submit_review(movie_id):
     if 'user' not in session:  # Changed from 'user' to 'user_email'
         return redirect('/login')
@@ -463,7 +498,10 @@ def edit_review(movie_id, review_id):
     return "Review not found or unauthorized", 404
 
 @app.route('/admin/movies', methods=['GET', 'POST'])
+@token_required
 def manage_movies():
+    if not session.get('is_admin'):
+        return redirect('/login')
     if 'user_email' not in session or session.get('user_email') != 'admin@admin.com':
         return redirect('/login')
 

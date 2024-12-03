@@ -1,16 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Login{% endblock %}
 {% block content %}
-    <h1>Login</h1>
-    <form method="POST" action="/login">
-        <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="email" name="email" required>
-        </div>
-        <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password" name="password" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-    </form>
+    <div class="container" role="main">
+        <h1 id="login-heading">Login</h1>
+        <form method="POST" action="/login" aria-labelledby="login-heading">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" 
+                       class="form-control" 
+                       id="email" 
+                       name="email" 
+                       required 
+                       aria-required="true"
+                       aria-describedby="email-help">
+                <div id="email-help" class="form-text">Enter the email address you used to register</div>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" 
+                       class="form-control" 
+                       id="password" 
+                       name="password" 
+                       required 
+                       aria-required="true"
+                       aria-describedby="password-help">
+                <div id="password-help" class="form-text">Enter your password</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" aria-label="Login to your account">Login</button>
+        </form>
+    </div>
 {% endblock %}
