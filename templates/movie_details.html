@@ -1,0 +1,101 @@
+{# movie_details.html #}
+{% extends "base.html" %}
+{% block title %}{{ movie.title }} - Details{% endblock %}
+{% block content %}
+<div class="container">
+    <!-- Back Button -->
+    <a href="{{ url_for('movies') }}" class="btn btn-link mb-3">
+        <i class="bi bi-arrow-left"></i> Back to Movies
+    </a>
+
+    <!-- Movie Details Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h1 class="card-title h3">{{ movie.title }}</h1>
+            <h6 class="card-subtitle mb-2 text-muted">{{ movie.genre }}</h6>
+            <p class="card-text">{{ movie.description }}</p>
+            <div class="d-flex align-items-center mb-3">
+                <div class="me-2">
+                    {% for i in range(5) %}
+                    <i class="bi bi-star{% if i < (avg_rating|int) %}-fill text-warning{% endif %}"></i>
+                    {% endfor %}
+                </div>
+                <span class="fw-bold">{{ "%.1f"|format(avg_rating) }}</span>
+                <span class="text-muted ms-2">({{ reviews|length }} reviews)</span>
+            </div>
+            {% if session.get('user') %}
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bookingModal">
+                Book Tickets
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Review Form -->
+    {% if session.get('user') and not user_has_reviewed %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="h4 mb-3">Write a Review</h2>
+            <form action="{{ url_for('submit_review', movie_id=movie.id) }}" method="POST">
+                <div class="mb-3">
+                    <label for="rating" class="form-label">Rating</label>
+                    <select name="rating" id="rating" class="form-select" required>
+                        <option value="5">5 - Excellent</option>
+                        <option value="4">4 - Very Good</option>
+                        <option value="3">3 - Good</option>
+                        <option value="2">2 - Fair</option>
+                        <option value="1">1 - Poor</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="comment" class="form-label">Your Review</label>
+                    <textarea name="comment" id="comment" class="form-control" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Review</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Reviews List -->
+    <div class="card">
+        <div class="card-body">
+            <h2 class="h4 mb-4">Reviews</h2>
+            {% if reviews %}
+                {% for review in reviews %}
+                <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="mb-1">
+                                {% for i in range(5) %}
+                                <i class="bi bi-star{% if i < (review.rating|int) %}-fill text-warning{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                            <div class="text-muted small">By: {{ review.user_email }}</div>
+                        </div>
+                        {% if session.get('user') == review.user_email %}
+                        <a href="{{ url_for('edit_review', movie_id=movie.id, review_id=review.review_id) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            Edit
+                        </a>
+                        {% endif %}
+                    </div>
+                    <p class="mt-2 mb-1">{{ review.comment }}</p>
+                    <div class="text-muted small">
+                        Posted: {{ review.date_posted }}
+                        {% if review.date_updated != review.date_posted %}
+                        • Updated: {{ review.date_updated }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-chat-square-text display-4"></i>
+                    <p class="mt-2 mb-0">No reviews yet. Be the first to share your thoughts!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

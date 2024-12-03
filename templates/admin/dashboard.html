@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+    <h1>Admin Dashboard</h1>
+    <h2>Manage Movies</h2>
+    <form method="POST" action="/admin">
+        <div class="mb-3">
+            <label for="title" class="form-label">Title</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label for="genre" class="form-label">Genre</label>
+            <input type="text" class="form-control" id="genre" name="genre" required>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Movie</button>
+    </form>
+
+    <h2 class="mt-4">Existing Movies</h2>
+    <ul class="list-group">
+        {% for movie in movies %}
+        <li class="list-group-item">
+            <strong>{{ movie['title'] }}</strong> - {{ movie['genre'] }}
+            <p>{{ movie['description'] }}</p>
+        </li>
+        {% endfor %}
+    </ul>
+{% endblock %}

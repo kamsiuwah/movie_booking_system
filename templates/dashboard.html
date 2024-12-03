@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}My Tickets{% endblock %}
+{% block title %}Dashboard{% endblock %}
 {% block content %}
-    <h1>My Tickets</h1>
-    {% if tickets %}
+<h1>My Tickets</h1>
+{% if tickets %}
     <ul class="list-group">
         {% for ticket in tickets %}
         <li class="list-group-item">
@@ -13,7 +13,7 @@
         </li>
         {% endfor %}
     </ul>
-    {% else %}
-    <p>You have not purchased any tickets yet.</p>
-    {% endif %}
+{% else %}
+    <p>You have no tickets yet.</p>
+{% endif %}
 {% endblock %}
