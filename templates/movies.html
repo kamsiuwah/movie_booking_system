@@ -1,81 +1,49 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4" role="main">
+<div class="container mt-4">
     <!-- Search Bar -->
     <div class="row mb-4">
         <div class="col-md-6 mx-auto">
-            <form method="GET" action="{{ url_for('movies') }}" class="input-group" role="search">
-                <label for="movie-search" class="visually-hidden">Search movies</label>
-                <input type="search" 
-                       id="movie-search"
-                       name="search" 
-                       class="form-control" 
-                       placeholder="Search movies..." 
-                       value="{{ request.args.get('search', '') }}"
-                       aria-label="Search movies">
-                <button type="submit" class="btn btn-primary" aria-label="Submit search">Search</button>
+            <form method="GET" action="{{ url_for('movies') }}" class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Search movies..." value="{{ request.args.get('search', '') }}">
+                <button type="submit" class="btn btn-primary">Search</button>
             </form>
         </div>
     </div>
 
     <!-- Movies Grid -->
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" role="list">
+    <div class="row">
         {% for movie in movies %}
-        <div class="col" role="listitem">
-            <div class="card h-100 shadow-sm">
+        <div class="col-md-4 mb-4">
+            <div class="card">
                 <div class="card-body">
-                    <h2 class="card-title h5" id="movie-title-{{ movie.id }}">{{ movie.title }}</h2>
-                    <p class="card-subtitle mb-2 text-muted" id="movie-genre-{{ movie.id }}">{{ movie.genre }}</p>
-                    <p class="card-text text-truncate" aria-label="Movie description">{{ movie.description }}</p>
+                    <h5 class="card-title">{{ movie.title }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ movie.genre }}</h6>
+                    <p class="card-text">{{ movie.description }}</p>
                     
                     {% if session.get('user_email') %}
-                    <form method="POST" 
-                          action="{{ url_for('book_ticket', movie_id=movie.id) }}" 
-                          class="mb-2"
-                          aria-labelledby="movie-title-{{ movie.id }}">
+                    <form method="POST" action="{{ url_for('book_ticket', movie_id=movie.id) }}" class="mb-2">
                         <div class="mb-2">
-                            <label for="theater-{{ movie.id }}" class="form-label">Select Theater:</label>
-                            <select id="theater-{{ movie.id }}" 
-                                    name="theater" 
-                                    class="form-select form-select-sm"
-                                    aria-label="Select theater for {{ movie.title }}">
+                            <label class="form-label">Theater:</label>
+                            <select name="theater" class="form-select">
                                 <option value="Theater 1">Theater 1</option>
                                 <option value="Theater 2">Theater 2</option>
                             </select>
                         </div>
                         <div class="mb-2">
-                            <label for="showtime-{{ movie.id }}" class="form-label">Select Showtime:</label>
-                            <select id="showtime-{{ movie.id }}" 
-                                    name="showtime" 
-                                    class="form-select form-select-sm"
-                                    aria-label="Select showtime for {{ movie.title }}">
+                            <label class="form-label">Showtime:</label>
+                            <select name="showtime" class="form-select">
                                 <option value="1:00 PM">1:00 PM</option>
                                 <option value="4:00 PM">4:00 PM</option>
                                 <option value="7:00 PM">7:00 PM</option>
                             </select>
                         </div>
-                        <div class="d-grid gap-2">
-                            <a href="{{ url_for('movie_details', movie_id=movie.id) }}" 
-                               class="btn btn-primary"
-                               aria-label="View details and reviews for {{ movie.title }}">
-                                View Details & Reviews
-                            </a>
-                            <button type="submit" 
-                                    class="btn btn-success"
-                                    aria-label="Book tickets for {{ movie.title }}">
-                                Book Tickets
-                            </button>
-                        </div>
+                        <button type="submit" class="btn btn-success w-100 mb-2">Book Tickets</button>
                     </form>
-                    {% else %}
-                    <div class="d-grid">
-                        <a href="{{ url_for('movie_details', movie_id=movie.id) }}" 
-                           class="btn btn-primary"
-                           aria-label="View details and reviews for {{ movie.title }}">
-                            View Details & Reviews
-                        </a>
-                    </div>
                     {% endif %}
+                    <a href="{{ url_for('movie_details', movie_id=movie.id) }}" class="btn btn-primary w-100">
+                        View Details & Reviews
+                    </a>
                 </div>
             </div>
         </div>

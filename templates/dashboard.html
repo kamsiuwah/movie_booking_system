@@ -1,19 +1,84 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<h1>My Tickets</h1>
-{% if tickets %}
-    <ul class="list-group">
-        {% for ticket in tickets %}
-        <li class="list-group-item">
-            <strong>Movie ID:</strong> {{ ticket['movie_id'] }} <br>
-            <strong>Theater:</strong> {{ ticket['theater'] }} <br>
-            <strong>Showtime:</strong> {{ ticket['showtime'] }} <br>
-            <strong>Ticket ID:</strong> {{ ticket['ticket_id'] }}
-        </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>You have no tickets yet.</p>
-{% endif %}
+<div class="container">
+    <h1 class="mb-4">Welcome, {{ session.get('user_name', 'User') }}!</h1>
+    
+    <!-- Quick Actions Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Quick Actions</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('movies') }}" class="btn btn-primary w-100 mb-2">Browse Movies</a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('history') }}" class="btn btn-info w-100 mb-2">View My Tickets</a>
+                        </div>
+                        {% if session.get('is_admin') %}
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-warning w-100 mb-2">Admin Panel</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity and Upcoming Movies -->
+    <div class="row">
+        <!-- Recent Activity -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Recent Activity</h2>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% if recent_tickets %}
+                            {% for ticket in recent_tickets[:3] %}
+                            <div class="list-group-item">
+                                <h6 class="mb-1">Movie ID: {{ ticket.movie_id }}</h6>
+                                <p class="mb-1">Theater: {{ ticket.theater }}</p>
+                                <small>Showtime: {{ ticket.showtime }}</small>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="mb-0">No recent ticket purchases.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Now Playing -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Now Playing</h2>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% if current_movies %}
+                            {% for movie in current_movies[:3] %}
+                            <div class="list-group-item">
+                                <h6 class="mb-1">{{ movie.title }}</h6>
+                                <p class="mb-1">{{ movie.genre }}</p>
+                                <a href="{{ url_for('movie_details', movie_id=movie.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="mb-0">No movies currently playing.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

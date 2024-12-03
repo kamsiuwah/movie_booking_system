@@ -1,14 +1,58 @@
 {% extends "base.html" %}
-{% block title %}Welcome{% endblock %}
+{% block title %}Welcome to Movie Booking System{% endblock %}
 {% block content %}
-    <div class="text-center">
-        <h1>Welcome to the Movie Booking System</h1>
-        {% if session.get('user') %}
-            <p>Welcome, {{ session['user'] }}!</p>
-        {% else %}
-            <a href="/login" class="btn btn-primary">Login</a>
-            <a href="/register" class="btn btn-secondary">Register</a>
-        {% endif %}
-        <a href="/movies" class="btn btn-success mt-3">Browse Movies</a>
+<div class="container">
+    <!-- Search Bar -->
+    <div class="search-section mb-4">
+        <form class="d-flex" method="GET" action="{{ url_for('movies') }}">
+            <input class="form-control me-2" type="search" name="search" placeholder="Search for movies..." aria-label="Search">
+            <button class="btn btn-outline-primary" type="submit">Search</button>
+        </form>
     </div>
+
+    <!-- Navigation Links -->
+    <div class="nav-buttons mb-4">
+        <a href="{{ url_for('movies') }}" class="btn btn-primary me-2">Movies</a>
+        <a href="#theaters" class="btn btn-primary me-2">Theaters</a>
+        {% if not session.get('user_email') %}
+            <a href="{{ url_for('login') }}" class="btn btn-outline-primary">Login/Register</a>
+        {% endif %}
+    </div>
+
+    <!-- Latest Releases Section -->
+    <section class="latest-releases mb-5">
+        <h2>Latest Releases</h2>
+        <div class="row">
+            {% for movie in latest_movies %}
+            <div class="col-md-3 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ movie.title }}</h5>
+                        <p class="card-text">{{ movie.genre }}</p>
+                        <a href="{{ url_for('movie_details', movie_id=movie.id) }}" class="btn btn-primary">View Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Upcoming Releases Section -->
+    <section class="upcoming-releases">
+        <h2>Upcoming Releases</h2>
+        <div class="row">
+            {% for movie in upcoming_movies %}
+            <div class="col-md-3 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ movie.title }}</h5>
+                        <p class="card-text">{{ movie.genre }}</p>
+                        <a href="{{ url_for('movie_details', movie_id=movie.id) }}" class="btn btn-primary">View Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
 {% endblock %}

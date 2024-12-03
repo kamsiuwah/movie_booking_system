@@ -42,9 +42,9 @@
         Skip to main content
     </a>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark" aria-label="Main navigation">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/" aria-label="Movie Booking Home">Movie Booking</a>
+            <a class="navbar-brand" href="/">Movie Booking</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -52,31 +52,15 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if session.get('user_email') %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/history" aria-label="View My Tickets">My Tickets</a>
-                        </li>
-                        {% if session.get('user_email') == 'admin@admin.com' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="/admin/movies" aria-label="Manage Movies">Manage Movies</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/admin/reports" aria-label="View Reports">Reports</a>
-                            </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/logout" aria-label="Log Out">Logout</a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/history">My Tickets</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/movies">Browse Movies</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/login" aria-label="Log In">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/register" aria-label="Register New Account">Register</a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/movies">Browse Movies</a></li>
                     {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/movies" aria-label="Browse Movies">Browse Movies</a>
-                    </li>
                 </ul>
             </div>
         </div>

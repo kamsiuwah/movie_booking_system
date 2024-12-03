@@ -1,31 +1,79 @@
 {% extends "base.html" %}
 {% block title %}Admin Dashboard{% endblock %}
 {% block content %}
-    <h1>Admin Dashboard</h1>
-    <h2>Manage Movies</h2>
-    <form method="POST" action="/admin">
-        <div class="mb-3">
-            <label for="title" class="form-label">Title</label>
-            <input type="text" class="form-control" id="title" name="title" required>
+<div class="container" role="main">
+    <h1 class="mb-4">Admin Dashboard</h1>
+    
+    <!-- Add Movie Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Add New Movie</h2>
         </div>
-        <div class="mb-3">
-            <label for="genre" class="form-label">Genre</label>
-            <input type="text" class="form-control" id="genre" name="genre" required>
+        <div class="card-body">
+            <form method="POST" action="/admin" aria-label="Add new movie form">
+                <input type="hidden" name="action" value="add">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="title" name="title" required aria-required="true">
+                </div>
+                <div class="mb-3">
+                    <label for="genre" class="form-label">Genre</label>
+                    <input type="text" class="form-control" id="genre" name="genre" required aria-required="true">
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3" required aria-required="true"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Movie</button>
+            </form>
         </div>
-        <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">Add Movie</button>
-    </form>
+    </div>
 
-    <h2 class="mt-4">Existing Movies</h2>
-    <ul class="list-group">
-        {% for movie in movies %}
-        <li class="list-group-item">
-            <strong>{{ movie['title'] }}</strong> - {{ movie['genre'] }}
-            <p>{{ movie['description'] }}</p>
-        </li>
-        {% endfor %}
-    </ul>
+    <!-- Movie List -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Existing Movies</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table" aria-label="Movie list">
+                    <thead>
+                        <tr>
+                            <th scope="col">Title</th>
+                            <th scope="col">Genre</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movie in movies %}
+                        <tr>
+                            <td>{{ movie.title }}</td>
+                            <td>{{ movie.genre }}</td>
+                            <td>{{ movie.description }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" 
+                                        onclick="editMovie('{{ movie.id }}')"
+                                        aria-label="Edit {{ movie.title }}">
+                                    Edit
+                                </button>
+                                <form method="POST" class="d-inline">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="movie_id" value="{{ movie.id }}">
+                                    <button type="submit" 
+                                            class="btn btn-sm btn-danger"
+                                            aria-label="Delete {{ movie.title }}"
+                                            onclick="return confirm('Are you sure you want to delete this movie?')">
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

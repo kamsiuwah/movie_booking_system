@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify, make_response
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify, make_response, flash
 import csv
 import os
 import bcrypt
@@ -36,7 +36,17 @@ mail = Mail(app)
 # Home Page
 @app.route('/')
 def home():
-    return render_template('index.html')
+    # Get latest movies
+    latest_movies = []
+    with open('data/movies.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        movies = list(reader)
+        latest_movies = movies[:4]  # Get first 4 movies for latest releases
+        upcoming_movies = movies[4:8]  # Get next 4 movies for upcoming releases
+    
+    return render_template('index.html', 
+                         latest_movies=latest_movies,
+                         upcoming_movies=upcoming_movies)
 
 # User Registration
 @app.route('/register', methods=['GET', 'POST'])
@@ -84,6 +94,16 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # Check both is_admin flag and specific admin email
+        if not session.get('is_admin') or session.get('user_email') != 'admin@admin.com':
+            flash('Admin access required', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
+
 # User Login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -95,7 +115,6 @@ def login():
             reader = csv.DictReader(file)
             for row in reader:
                 if row['email'] == email and bcrypt.checkpw(password.encode('utf-8'), row['password'].encode('utf-8')):
-                    # Generate JWT token
                     token = jwt.encode({
                         'user_email': email,
                         'user_name': row['name'],
@@ -103,10 +122,7 @@ def login():
                         'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
                     }, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
-                    # Create response with redirect
                     response = make_response(redirect('/movies'))
-                    
-                    # Set secure cookie with token
                     response.set_cookie(
                         'token',
                         token,
@@ -116,9 +132,14 @@ def login():
                         max_age=60*60*24*7  # 7 days
                     )
                     
+                    # Set session variables
+                    session['user_email'] = email
+                    session['user_name'] = row['name']
+                    session['is_admin'] = (email == 'admin@admin.com')
+                    
                     return response
 
-        return "Invalid credentials!"
+        return "Invalid credentials!", 401
 
     return render_template('login.html')
 
@@ -153,10 +174,10 @@ def movies():
 @app.route('/book/<movie_id>', methods=['POST'])
 @token_required
 def book_ticket(movie_id):
-    if 'user' not in session:
+    if 'user_email' not in session:
         return redirect('/login')
 
-    user_email = session.get('user')  # Get the actual email address
+    user_email = session.get('user_email')  # Get the actual email address
     theater = request.form['theater']
     showtime = request.form['showtime']
 
@@ -296,20 +317,31 @@ def payment_cancel():
 @token_required
 def dashboard():
     user_email = session.get('user_email')
-    user_tickets = []
-
+    is_admin = session.get('is_admin', False)
+    
+    # Get user's recent tickets
+    recent_tickets = []
     try:
         with open('data/tickets.csv', 'r') as file:
             reader = csv.DictReader(file)
-            for row in reader:
-                if row['user_email'].strip() == user_email.strip() and row['status'] == 'confirmed':
-                    user_tickets.append(row)
-
-        return render_template('dashboard.html', tickets=user_tickets)
+            tickets = [row for row in reader if row['user_email'] == user_email]
+            recent_tickets = sorted(tickets, key=lambda x: x['ticket_id'], reverse=True)[:3]
     except Exception as e:
-        print(f"Error in dashboard: {e}")
-        return "An error occurred while loading tickets."
+        print(f"Error loading tickets: {e}")
+    
+    # Get current movies
+    current_movies = []
+    try:
+        with open('data/movies.csv', 'r') as file:
+            reader = csv.DictReader(file)
+            current_movies = list(reader)[:3]
+    except Exception as e:
+        print(f"Error loading movies: {e}")
 
+    return render_template('dashboard.html',
+                         recent_tickets=recent_tickets,
+                         current_movies=current_movies,
+                         is_admin=is_admin)
 # View Purchase History
 @app.route('/history')
 @token_required
@@ -331,34 +363,18 @@ def history():
 
 
 # Admin Dashboard
-@app.route('/admin', methods=['GET', 'POST'])
+@app.route('/admin')
+@token_required
+@admin_required
 def admin_dashboard():
-    if 'user_email' not in session or session.get('is_admin'):  # Updated admin check
-        return redirect('/login')
-
-    movies_list = []
-    if request.method == 'POST':
-        title = request.form['title']
-        genre = request.form['genre']
-        description = request.form['description']
-
-        with open('data/movies.csv', 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([title, genre, description])
-
-    with open('data/movies.csv', 'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            movies_list.append(row)
-
-    return render_template('admin_dashboard.html', movies=movies_list)
+    return redirect(url_for('manage_movies'))
 
 @app.route('/movie/<movie_id>')
 def movie_details(movie_id):
-    if 'user' not in session:
+    if 'user_email' not in session:
         user_email = None
     else:
-        user_email = session.get('user')
+        user_email = session.get('user_email')
 
     # Get movie details
     movie = None
@@ -404,10 +420,10 @@ def movie_details(movie_id):
 @app.route('/movie/<movie_id>/review', methods=['POST'])
 @token_required
 def submit_review(movie_id):
-    if 'user' not in session:  # Changed from 'user' to 'user_email'
+    if 'user_email' not in session:  # Changed from 'user' to 'user_email'
         return redirect('/login')
 
-    user_email = session.get('user')  # Changed from session['user']
+    user_email = session.get('user_email')  # Changed from session['user']
     rating = request.form.get('rating')
     comment = request.form.get('comment')
 
@@ -499,28 +515,29 @@ def edit_review(movie_id, review_id):
 
 @app.route('/admin/movies', methods=['GET', 'POST'])
 @token_required
+@admin_required
 def manage_movies():
-    if not session.get('is_admin'):
-        return redirect('/login')
-    if 'user_email' not in session or session.get('user_email') != 'admin@admin.com':
-        return redirect('/login')
-
     if request.method == 'POST':
         action = request.form.get('action')
         
         if action == 'add':
-            # Add new movie
-            id = request.form.get('id')
+            # Generate new ID
+            with open('data/movies.csv', 'r') as file:
+                reader = csv.DictReader(file)
+                existing_ids = [int(row['id']) for row in reader if row['id'].isdigit()]
+                new_id = str(max(existing_ids + [0]) + 1)
+            
             title = request.form.get('title')
             genre = request.form.get('genre')
             description = request.form.get('description')
             
             with open('data/movies.csv', 'a', newline='') as file:
                 writer = csv.writer(file)
-                writer.writerow([id, title, genre, description])
+                writer.writerow([new_id, title, genre, description])
+            
+            flash('Movie added successfully!', 'success')
             
         elif action == 'edit':
-            # Edit existing movie
             id = request.form.get('id')
             title = request.form.get('title')
             genre = request.form.get('genre')
@@ -540,25 +557,24 @@ def manage_movies():
                 writer = csv.DictWriter(file, fieldnames=['id', 'title', 'genre', 'description'])
                 writer.writeheader()
                 writer.writerows(movies)
+            
+            flash('Movie updated successfully!', 'success')
                 
         elif action == 'delete':
-            # Delete movie
             id = request.form.get('id')
             movies = []
             with open('data/movies.csv', 'r') as file:
                 reader = csv.DictReader(file)
-                for row in reader:
-                    if row['id'] != id:
-                        movies.append(row)
+                movies = [row for row in reader if row['id'] != id]
             
             with open('data/movies.csv', 'w', newline='') as file:
                 writer = csv.DictWriter(file, fieldnames=['id', 'title', 'genre', 'description'])
                 writer.writeheader()
                 writer.writerows(movies)
+            
+            flash('Movie deleted successfully!', 'success')
 
-        return redirect('/admin/movies')
-
-    # GET request - show movie list
+    # Get updated movie list
     movies = []
     with open('data/movies.csv', 'r') as file:
         reader = csv.DictReader(file)
@@ -567,10 +583,9 @@ def manage_movies():
     return render_template('admin/manage_movies.html', movies=movies)
 
 @app.route('/admin/reports')
+@token_required
+@admin_required
 def admin_reports():
-    if 'user_email' not in session or session.get('user_email') != 'admin@admin.com':
-        return redirect('/login')
-    
     try:
         # Get total number of tickets sold
         ticket_sales = 0
@@ -633,7 +648,8 @@ def admin_reports():
                              
     except Exception as e:
         print(f"Error generating report: {e}")
-        return "Error generating report", 500
+        flash('Error generating report', 'error')
+        return redirect(url_for('admin_dashboard'))
 # -------------------- Helper Functions --------------------
 # Ensure data directory exists
 def ensure_data_files():
