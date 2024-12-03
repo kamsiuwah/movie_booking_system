@@ -527,6 +527,75 @@ def manage_movies():
         movies = list(reader)
 
     return render_template('admin/manage_movies.html', movies=movies)
+
+@app.route('/admin/reports')
+def admin_reports():
+    if 'user_email' not in session or session.get('user_email') != 'admin@admin.com':
+        return redirect('/login')
+    
+    try:
+        # Get total number of tickets sold
+        ticket_sales = 0
+        tickets_by_movie = {}
+        tickets_by_theater = {}
+        
+        with open('data/tickets.csv', 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                if row['status'] == 'confirmed':
+                    ticket_sales += 1
+                    
+                    # Count tickets per movie
+                    movie_id = row['movie_id']
+                    tickets_by_movie[movie_id] = tickets_by_movie.get(movie_id, 0) + 1
+                    
+                    # Count tickets per theater
+                    theater = row['theater']
+                    tickets_by_theater[theater] = tickets_by_theater.get(theater, 0) + 1
+        
+        # Get movie details for the report
+        movies_data = {}
+        with open('data/movies.csv', 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                movies_data[row['id']] = row['title']
+        
+        # Format movie sales data
+        movie_sales = []
+        for movie_id, count in tickets_by_movie.items():
+            movie_title = movies_data.get(movie_id, f"Unknown Movie ({movie_id})")
+            movie_sales.append({
+                'title': movie_title,
+                'tickets_sold': count
+            })
+        
+        # Get theater sales data
+        theater_sales = []
+        for theater, count in tickets_by_theater.items():
+            theater_sales.append({
+                'theater': theater,
+                'tickets_sold': count
+            })
+        
+        # Sort by tickets sold
+        movie_sales.sort(key=lambda x: x['tickets_sold'], reverse=True)
+        theater_sales.sort(key=lambda x: x['tickets_sold'], reverse=True)
+        
+        # Get currently playing movies
+        current_movies = []
+        with open('data/movies.csv', 'r') as file:
+            reader = csv.DictReader(file)
+            current_movies = list(reader)
+
+        return render_template('admin/reports.html',
+                             total_tickets=ticket_sales,
+                             movie_sales=movie_sales,
+                             theater_sales=theater_sales,
+                             current_movies=current_movies)
+                             
+    except Exception as e:
+        print(f"Error generating report: {e}")
+        return "Error generating report", 500
 # -------------------- Helper Functions --------------------
 # Ensure data directory exists
 def ensure_data_files():
