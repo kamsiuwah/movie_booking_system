@@ -15,7 +15,7 @@
     <div class="row">
         {% for movie in movies %}
         <div class="col-md-4 mb-4">
-            <div class="card">
+            <div class="card h-100">
                 <div class="card-body">
                     <h5 class="card-title">{{ movie.title }}</h5>
                     <h6 class="card-subtitle mb-2 text-muted">{{ movie.genre }}</h6>
@@ -26,17 +26,22 @@
                         <div class="mb-2">
                             <label class="form-label">Theater:</label>
                             <select name="theater" class="form-select">
-                                <option value="Theater 1">Theater 1</option>
-                                <option value="Theater 2">Theater 2</option>
+                                {% for theater_id in movie.theaters.split('|') %}
+                                <option value="{{ theater_id }}">{{ theater_names.get(theater_id, 'Unknown Theater') }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="mb-2">
                             <label class="form-label">Showtime:</label>
                             <select name="showtime" class="form-select">
-                                <option value="1:00 PM">1:00 PM</option>
-                                <option value="4:00 PM">4:00 PM</option>
-                                <option value="7:00 PM">7:00 PM</option>
+                                {% for showtime in movie.showtimes.split('|') %}
+                                <option value="{{ showtime }}">{{ showtime }}</option>
+                                {% endfor %}
                             </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Number of Tickets (max 10):</label>
+                            <input type="number" name="quantity" class="form-control" min="1" max="10" value="1" required>
                         </div>
                         <button type="submit" class="btn btn-success w-100 mb-2">Book Tickets</button>
                     </form>

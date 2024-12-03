@@ -17,6 +17,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'manage_theaters' %}active{% endif %}" 
+                           href="{{ url_for('manage_theaters') }}">
+                            Manage Theaters
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'admin_reports' %}active{% endif %}" 
                            href="{{ url_for('admin_reports') }}">
                             View Reports
@@ -28,6 +34,18 @@
 
         <!-- Main Content Area -->
         <main class="col-md-10 ms-sm-auto px-md-4">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show mt-3" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1>{% block page_title %}{% endblock %}</h1>
             </div>

@@ -1,0 +1,5 @@
+id,name,location,capacity,screens,amenities
+1,Premiere Cinema Lubbock,Lubbock TX,200,8,IMAX|Dolby Sound|Reclining Seats
+2,Alamo Drafthouse Lubbock,Lubbock TX,150,6,Dining Service|Reserved Seating
+3,Cinemark Movies 16,Lubbock TX,180,16,IMAX|RPX|Reclining Seats
+4,Stars & Stripes Drive-In,Lubbock TX,300,3,Drive-In|Digital Projection

@@ -1,4 +1,3 @@
-ticket_id,movie_id,theater,showtime,user_email,status
-1-Theater-1-12:00-PM,1,Theater 1,12:00 PM,uwah14@outlook.com,confirmed
-2-Theater-1-1:00-PM,2,Theater 1,1:00 PM,uwah14@outlook.com,confirmed
-2-Theater-1-1:00-PM,2,Theater 1,1:00 PM,uwah14@outlook.com,confirmed
+ticket_id,movie_id,theater,showtime,user_email,quantity,status
+
+1-Theater-1-3:00-PM,1,Theater 1,3:00 PM,uwah14@outlook.com,2,confirmed

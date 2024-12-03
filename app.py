@@ -151,25 +151,76 @@ def logout():
     session.clear()
     return response
 
-# Browse Movies
+def get_theater_names():
+    theater_names = {}
+    try:
+        with open('data/theaters.csv', 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                theater_names[row['id']] = f"{row['name']} ({row['location']})"
+    except Exception as e:
+        print(f"Error loading theaters: {e}")
+    return theater_names
+
 @app.route('/movies', methods=['GET'])
 def movies():
     search_query = request.args.get('search', '').lower()
     movies_list = []
+    theater_names = get_theater_names()
 
     with open('data/movies.csv', 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            # Filter movies by title or genre
             if search_query in row['title'].lower() or search_query in row['genre'].lower():
                 movies_list.append(row)
-            # If no search query, display all movies
             elif not search_query:
                 movies_list.append(row)
 
-    return render_template('movies.html', movies=movies_list)
+    return render_template('movies.html', 
+                         movies=movies_list,
+                         theater_names=theater_names)
 
+@app.route('/movie/<movie_id>')
+def movie_details(movie_id):
+    user_email = session.get('user_email')
+    theater_names = get_theater_names()
 
+    # Get movie details
+    movie = None
+    with open('data/movies.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if row['id'] == movie_id:
+                movie = row
+                break
+    
+    if not movie:
+        flash('Movie not found', 'error')
+        return redirect(url_for('movies'))
+
+    # Get reviews
+    reviews = []
+    user_has_reviewed = False
+    try:
+        with open('data/reviews.csv', 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                if row['movie_id'] == movie_id:
+                    reviews.append(row)
+                    if user_email and row['user_email'] == user_email:
+                        user_has_reviewed = True
+    except Exception as e:
+        print(f"Error reading reviews: {e}")
+
+    # Calculate average rating
+    avg_rating = sum(float(review['rating']) for review in reviews) / len(reviews) if reviews else 0
+
+    return render_template('movie_details.html', 
+                         movie=movie, 
+                         reviews=reviews, 
+                         user_has_reviewed=user_has_reviewed,
+                         avg_rating=avg_rating,
+                         theater_names=theater_names)
 # Purchase Tickets
 @app.route('/book/<movie_id>', methods=['POST'])
 @token_required
@@ -177,25 +228,44 @@ def book_ticket(movie_id):
     if 'user_email' not in session:
         return redirect('/login')
 
-    user_email = session.get('user_email')  # Get the actual email address
+    user_email = session.get('user_email')
     theater = request.form['theater']
     showtime = request.form['showtime']
+    quantity = int(request.form.get('quantity', 1))
 
-    # Create a unique ticket ID
-    ticket_id = f"{movie_id}-{theater}-{showtime}".replace(" ", "-")
+    # Check ticket limit
+    if quantity > 10:
+        flash('Maximum 10 tickets per booking allowed', 'error')
+        return redirect(url_for('movie_details', movie_id=movie_id))
 
-    # Fetch movie details
-    movie_title = None
+    # Fetch and validate movie details
+    movie = None
     with open('data/movies.csv', 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
             if row['id'] == movie_id:
-                movie_title = row['title']
-                ticket_price = 15
+                movie = row
                 break
 
-    if not movie_title:
-        return "Movie not found"
+    if not movie:
+        flash('Movie not found', 'error')
+        return redirect(url_for('movies'))
+
+    # Validate theater and showtime
+    theaters = movie['theaters'].split('|')
+    showtimes = movie['showtimes'].split('|')
+
+    if theater not in theaters:
+        flash('Invalid theater selection', 'error')
+        return redirect(url_for('movie_details', movie_id=movie_id))
+
+    if showtime not in showtimes:
+        flash('Invalid showtime selection', 'error')
+        return redirect(url_for('movie_details', movie_id=movie_id))
+
+    # Create a unique ticket ID
+    ticket_id = f"{movie_id}-{theater}-{showtime}".replace(" ", "-")
+    ticket_price = 15  # You might want to store this in the movie data or a separate configuration
 
     # Store ticket details
     pending_ticket = {
@@ -204,6 +274,7 @@ def book_ticket(movie_id):
         'theater': theater,
         'showtime': showtime,
         'user_email': user_email,
+        'quantity': quantity,
         'status': 'pending'
     }
     
@@ -213,28 +284,33 @@ def book_ticket(movie_id):
         json.dump(pending_ticket, f)
 
     try:
+        # Create Stripe checkout session with quantity
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': f"{movie_title} - {theater} ({showtime})",
+                        'name': f"{movie['title']} - {theater} ({showtime})",
                     },
                     'unit_amount': ticket_price * 100,
                 },
-                'quantity': 1,
+                'quantity': quantity,
             }],
             mode='payment',
             success_url=url_for('payment_success', ticket_id=ticket_id, _external=True),
             cancel_url=url_for('payment_cancel', ticket_id=ticket_id, _external=True),
-            metadata={'ticket_id': ticket_id}
+            metadata={
+                'ticket_id': ticket_id,
+                'quantity': str(quantity)
+            }
         )
         return redirect(checkout_session.url, code=303)
     except Exception as e:
         if os.path.exists(f'data/pending_tickets/{ticket_id}.json'):
             os.remove(f'data/pending_tickets/{ticket_id}.json')
-        return f"An error occurred: {str(e)}"
+        flash('An error occurred during payment processing', 'error')
+        return redirect(url_for('movie_details', movie_id=movie_id))
     
 @app.route('/success')
 def payment_success():
@@ -258,18 +334,20 @@ def payment_success():
             'theater': str(pending_ticket['theater']).strip(),
             'showtime': str(pending_ticket['showtime']).strip(),
             'user_email': str(pending_ticket['user_email']).strip(),
+            'quantity': int(pending_ticket.get('quantity', 1)),
             'status': 'confirmed'
         }
 
         # Write to tickets.csv with consistent formatting
         with open('data/tickets.csv', 'a', newline='') as file:
-            writer = csv.writer(file)  # Use regular writer instead of DictWriter
+            writer = csv.writer(file)
             writer.writerow([
                 clean_ticket['ticket_id'],
                 clean_ticket['movie_id'],
                 clean_ticket['theater'],
                 clean_ticket['showtime'],
                 clean_ticket['user_email'],
+                clean_ticket['quantity'],
                 clean_ticket['status']
             ])
 
@@ -289,6 +367,7 @@ def payment_success():
             Movie ID: {clean_ticket['movie_id']}
             Theater: {clean_ticket['theater']}
             Showtime: {clean_ticket['showtime']}
+            Quantity: {clean_ticket['quantity']}
             
             Please keep this email for your records.
             """
@@ -301,11 +380,12 @@ def payment_success():
         # Clean up pending ticket file
         os.remove(pending_ticket_file)
         
+        flash('Tickets booked successfully!', 'success')
         return redirect('/dashboard')
     except Exception as e:
         print(f"Error in payment_success: {e}")
-        return f"An error occurred: {str(e)}"
-
+        flash('An error occurred processing your payment', 'error')
+        return redirect('/movies')
 @app.route('/cancel')
 def payment_cancel():
     # Clear pending ticket from session
@@ -368,53 +448,6 @@ def history():
 @admin_required
 def admin_dashboard():
     return redirect(url_for('manage_movies'))
-
-@app.route('/movie/<movie_id>')
-def movie_details(movie_id):
-    if 'user_email' not in session:
-        user_email = None
-    else:
-        user_email = session.get('user_email')
-
-    # Get movie details
-    movie = None
-    with open('data/movies.csv', 'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if row['id'] == movie_id:
-                movie = row
-                break
-    
-    if not movie:
-        return "Movie not found", 404
-
-    # Get reviews for the movie
-    reviews = []
-    user_has_reviewed = False
-    try:
-        with open('data/reviews.csv', 'r') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                if row['movie_id'] == movie_id:
-                    reviews.append(row)
-                    if user_email and row['user_email'] == user_email:
-                        user_has_reviewed = True
-    except Exception as e:
-        print(f"Error reading reviews: {e}")
-        reviews = []
-
-    # Calculate average rating
-    if reviews:
-        avg_rating = sum(float(review['rating']) for review in reviews) / len(reviews)
-    else:
-        avg_rating = 0
-
-    return render_template('movie_details.html', 
-                         movie=movie, 
-                         reviews=reviews, 
-                         user_has_reviewed=user_has_reviewed,
-                         avg_rating=avg_rating)
-
 
 
 @app.route('/movie/<movie_id>/review', methods=['POST'])
@@ -517,6 +550,15 @@ def edit_review(movie_id, review_id):
 @token_required
 @admin_required
 def manage_movies():
+    # Get all theaters for the form
+    all_theaters = []
+    theater_names = {}
+    with open('data/theaters.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            all_theaters.append(row)
+            theater_names[row['id']] = f"{row['name']} ({row['location']})"
+
     if request.method == 'POST':
         action = request.form.get('action')
         
@@ -527,13 +569,17 @@ def manage_movies():
                 existing_ids = [int(row['id']) for row in reader if row['id'].isdigit()]
                 new_id = str(max(existing_ids + [0]) + 1)
             
+            # Get form data
             title = request.form.get('title')
             genre = request.form.get('genre')
             description = request.form.get('description')
+            theaters = '|'.join(request.form.getlist('theaters'))
+            showtimes = '|'.join(request.form.getlist('showtimes'))
             
+            # Add new movie
             with open('data/movies.csv', 'a', newline='') as file:
                 writer = csv.writer(file)
-                writer.writerow([new_id, title, genre, description])
+                writer.writerow([new_id, title, genre, description, theaters, showtimes])
             
             flash('Movie added successfully!', 'success')
             
@@ -542,24 +588,31 @@ def manage_movies():
             title = request.form.get('title')
             genre = request.form.get('genre')
             description = request.form.get('description')
+            theaters = '|'.join(request.form.getlist('theaters'))
+            showtimes = '|'.join(request.form.getlist('showtimes'))
             
+            # Update movie
             movies = []
             with open('data/movies.csv', 'r') as file:
                 reader = csv.DictReader(file)
                 for row in reader:
                     if row['id'] == id:
-                        row['title'] = title
-                        row['genre'] = genre
-                        row['description'] = description
+                        row.update({
+                            'title': title,
+                            'genre': genre,
+                            'description': description,
+                            'theaters': theaters,
+                            'showtimes': showtimes
+                        })
                     movies.append(row)
             
             with open('data/movies.csv', 'w', newline='') as file:
-                writer = csv.DictWriter(file, fieldnames=['id', 'title', 'genre', 'description'])
+                writer = csv.DictWriter(file, fieldnames=['id', 'title', 'genre', 'description', 'theaters', 'showtimes'])
                 writer.writeheader()
                 writer.writerows(movies)
             
             flash('Movie updated successfully!', 'success')
-                
+        
         elif action == 'delete':
             id = request.form.get('id')
             movies = []
@@ -568,7 +621,7 @@ def manage_movies():
                 movies = [row for row in reader if row['id'] != id]
             
             with open('data/movies.csv', 'w', newline='') as file:
-                writer = csv.DictWriter(file, fieldnames=['id', 'title', 'genre', 'description'])
+                writer = csv.DictWriter(file, fieldnames=['id', 'title', 'genre', 'description', 'theaters', 'showtimes'])
                 writer.writeheader()
                 writer.writerows(movies)
             
@@ -580,7 +633,87 @@ def manage_movies():
         reader = csv.DictReader(file)
         movies = list(reader)
 
-    return render_template('admin/manage_movies.html', movies=movies)
+    return render_template('admin/manage_movies.html', 
+                         movies=movies,
+                         all_theaters=all_theaters,
+                         theater_names=theater_names)
+
+@app.route('/admin/theaters', methods=['GET', 'POST'])
+@token_required
+@admin_required
+def manage_theaters():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'add':
+            # Generate new ID
+            with open('data/theaters.csv', 'r') as file:
+                reader = csv.DictReader(file)
+                existing_ids = [int(row['id']) for row in reader if row['id'].isdigit()]
+                new_id = str(max(existing_ids + [0]) + 1)
+            
+            name = request.form.get('name')
+            location = request.form.get('location')
+            capacity = request.form.get('capacity')
+            screens = request.form.get('screens')
+            amenities = request.form.get('amenities').replace(',', '|')
+            
+            with open('data/theaters.csv', 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([new_id, name, location, capacity, screens, amenities])
+            
+            flash('Theater added successfully!', 'success')
+            
+        elif action == 'edit':
+            id = request.form.get('id')
+            name = request.form.get('name')
+            location = request.form.get('location')
+            capacity = request.form.get('capacity')
+            screens = request.form.get('screens')
+            amenities = request.form.get('amenities').replace(',', '|')
+            
+            theaters = []
+            with open('data/theaters.csv', 'r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    if row['id'] == id:
+                        row.update({
+                            'name': name,
+                            'location': location,
+                            'capacity': capacity,
+                            'screens': screens,
+                            'amenities': amenities
+                        })
+                    theaters.append(row)
+            
+            with open('data/theaters.csv', 'w', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=['id', 'name', 'location', 'capacity', 'screens', 'amenities'])
+                writer.writeheader()
+                writer.writerows(theaters)
+            
+            flash('Theater updated successfully!', 'success')
+                
+        elif action == 'delete':
+            id = request.form.get('id')
+            theaters = []
+            with open('data/theaters.csv', 'r') as file:
+                reader = csv.DictReader(file)
+                theaters = [row for row in reader if row['id'] != id]
+            
+            with open('data/theaters.csv', 'w', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=['id', 'name', 'location', 'capacity', 'screens', 'amenities'])
+                writer.writeheader()
+                writer.writerows(theaters)
+            
+            flash('Theater deleted successfully!', 'success')
+
+    # Get updated theater list
+    theaters = []
+    with open('data/theaters.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        theaters = list(reader)
+
+    return render_template('admin/manage_theaters.html', theaters=theaters)
 
 @app.route('/admin/reports')
 @token_required
@@ -675,12 +808,16 @@ def ensure_data_files():
     if not os.path.exists('data/tickets.csv'):
         with open('data/tickets.csv', 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['ticket_id', 'movie_id', 'theater', 'showtime', 'user_email', 'status'])
+            writer.writerow(['ticket_id', 'movie_id', 'theater', 'showtime', 'user_email', 'quantity', 'status'])
 
     if not os.path.exists('data/reviews.csv'):
         with open('data/reviews.csv', 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(['review_id', 'movie_id', 'user_email', 'rating', 'comment', 'date_posted', 'date_updated'])
+    if not os.path.exists('data/theaters.csv'):
+        with open('data/theaters.csv', 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['id', 'name', 'location', 'capacity', 'screens', 'amenities'])
 
 def update_movies_with_ids():
     movies = []

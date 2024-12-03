@@ -1,5 +1,5 @@
 id,title,genre,description,theaters,showtimes
-1,Inception,Sci-Fi,A thief who steals secrets through dream-sharing technology,Theater 1|Theater 2,12:00 PM|3:00 PM|6:00 PM
-2,Titanic,Romance,A love story aboard the ill-fated Titanic,Theater 1|Theater 3,1:00 PM|4:00 PM
-3,Avatar,Sci-Fi,Humans on a mission to exploit resources on a distant planet,Theater 2|Theater 3,2:00 PM|5:00 PM|8:00 PM
-4,The Dark Knight,Action/Drama,"In this critically acclaimed superhero film, Batman faces off against the Joker, a criminal mastermind unleashing chaos on Gotham City. As the Dark Knight struggles to defeat this agent of anarchy, he must confront impossible choices that test his commitment to justice."
+1,Inception,Sci-Fi,A thief who steals secrets through dream-sharing technology,1|2,12:00 PM|3:00 PM|6:00 PM
+2,Titanic,Romance,A love story aboard the ill-fated Titanic,1|3,1:00 PM|4:00 PM
+3,Avatar,Sci-Fi,Humans on a mission to exploit resources on a distant planet,2|3,2:00 PM|5:00 PM|8:00 PM
+4,The Dark Knight,Action/Drama,"In this critically acclaimed superhero film, Batman faces off against the Joker, a criminal mastermind unleashing chaos on Gotham City. As the Dark Knight struggles to defeat this agent of anarchy, he must confront impossible choices that test his commitment to justice.",1|4,1:30 PM|4:30 PM|7:30 PM
