@@ -13,7 +13,8 @@
             <h1 class="card-title h3">{{ movie.title }}</h1>
             <h6 class="card-subtitle mb-2 text-muted">{{ movie.genre }}</h6>
             <p class="card-text">{{ movie.description }}</p>
-            
+            <img src="{{ url_for('static', filename='images/' + movie.image) }}" alt="{{ movie.title }}" class="img-fluid mb-3">
+
             <!-- Theaters and Showtimes -->
             <div class="mb-3">
                 <h5>Available at:</h5>
@@ -78,7 +79,6 @@
                     </form>
                 </div>
             </div>
-            <!-- Add JavaScript for price calculation -->
             <script>
                 document.querySelector('input[name="quantity"]').addEventListener('change', function () {
                     const quantity = this.value;

@@ -16,11 +16,11 @@
         {% for movie in movies %}
         <div class="col-md-4 mb-4">
             <div class="card h-100">
+                <img src="{{ url_for('static', filename='images/' + (movie.image or 'default.jpg')) }}" alt="{{ movie.title }}" class="card-img-top">
                 <div class="card-body">
                     <h5 class="card-title">{{ movie.title }}</h5>
                     <h6 class="card-subtitle mb-2 text-muted">{{ movie.genre }}</h6>
                     <p class="card-text">{{ movie.description }}</p>
-                    
                     {% if session.get('user_email') %}
                     <form method="POST" action="{{ url_for('book_ticket', movie_id=movie.id) }}" class="mb-2">
                         <div class="mb-2">
