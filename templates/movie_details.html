@@ -10,13 +10,20 @@
     <!-- Movie Details Card -->
     <div class="card mb-4">
         <div class="card-body">
-            <h1 class="card-title h3">{{ movie.title }}</h1>
-            <h6 class="card-subtitle mb-2 text-muted">{{ movie.genre }}</h6>
-            <p class="card-text">{{ movie.description }}</p>
-            <img src="{{ url_for('static', filename='images/' + movie.image) }}" alt="{{ movie.title }}" class="img-fluid mb-3">
+            <h1 class="card-title h3 text-center">{{ movie.title }}</h1>
+            <h6 class="card-subtitle mb-2 text-muted text-center">{{ movie.genre }}</h6>
+            <p class="card-text text-center">{{ movie.description }}</p>
+            
+            <!-- Centered Image -->
+            <div class="d-flex justify-content-center align-items-center" style="height: auto;">
+                <img src="{{ url_for('static', filename='images/' + movie.image) }}" 
+                     alt="{{ movie.title }}" 
+                     class="img-fluid" 
+                     style="display: block; margin: 0 auto; max-height: 500px; object-fit: contain;">
+            </div>
 
             <!-- Theaters and Showtimes -->
-            <div class="mb-3">
+            <div class="mt-4">
                 <h5>Available at:</h5>
                 {% for theater_id in movie.theaters.split('|') %}
                 <div class="card mb-2">
