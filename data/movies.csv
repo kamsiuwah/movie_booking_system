@@ -3,3 +3,7 @@ id,title,genre,description,theaters,showtimes,image
 2,Titanic,Romance,A love story aboard the ill-fated Titanic,1|3,1:00 PM|4:00 PM,titanic.jpg
 3,Avatar,Sci-Fi,Humans on a mission to exploit resources on a distant planet,2|3,2:00 PM|5:00 PM|8:00 PM,avatar.jpg
 4,The Dark Knight,Action/Drama,"In this critically acclaimed superhero film, Batman faces off against the Joker, a criminal mastermind unleashing chaos on Gotham City. As the Dark Knight struggles to defeat this agent of anarchy, he must confront impossible choices that test his commitment to justice.",1|4,1:30 PM|4:30 PM|7:30 PM,the_dark_knight.jpg
+5,The Flash,Action,Barry Allen uses his super speed to travel back in time and change the past,1|2,12:30 PM|3:30 PM|6:30 PM,the_flash.jpg
+6,Spider-Man: Beyond the Spider-Verse,Animation,Miles Morales embarks on an adventure across the multiverse,1|3,1:45 PM|4:45 PM|7:45 PM,spider_man_beyond.jpg
+7,The Marvels,Action,Captain Marvel teams up with Ms. Marvel and Monica Rambeau to face a cosmic threat,2|4,11:00 AM|2:00 PM|5:00 PM,the_marvels.jpg
+8,Dune: Part Two,Sci-Fi,Paul Atreides unites with the Fremen to seek revenge against the conspirators,1|4,12:15 PM|3:15 PM|6:15 PM,dune_part_two.jpg
